@@ -8,6 +8,7 @@ empty is left out of the VDF, so Steam keeps its current value.
 from __future__ import annotations
 
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -68,9 +69,15 @@ def write_output(name: str, value: str, env: dict[str, str]) -> None:
 
 
 def vdf_escape(value: str) -> str:
-    """Escape a value for a quoted VDF (KeyValues) string."""
+    """Make a value safe for a quoted VDF (KeyValues) string.
+
+    steamcmd reads build configs without escape sequences: a backslash is a plain character
+    (so it is kept as is) and a double quote always ends the string. Double quotes can't be
+    written at all, so they are replaced by typographic quotes.
+    """
     value = value.replace("\r\n", "\n").replace("\r", "\n").replace("\x00", "")
-    return value.replace("\\", "\\\\").replace('"', '\\"')
+    value = re.sub(r'(^|(?<=[\s(\[{<\-/]))"', "“", value)
+    return value.replace('"', "”")
 
 
 def build_vdf(fields: list[tuple[str, str]]) -> str:

@@ -56,9 +56,12 @@ jobs:
           check '"contentfolder" "/github/workspace/test/fixtures/content"'
           check '"previewfile" "/github/workspace/test/fixtures/preview.png"'
           check '"visibility" "3"'
-          check '"title" "Title with \"quotes\""'
-          check 'Fixed C:\\path\\to\\file'
-          check '"description" "[h1]My \"Quoted\" Mod[/h1]'
+          check '"title" "Title with “quotes”"'
+          check 'Fixed C:\path\to\file'
+          check '"description" "[h1]My “Quoted” Mod[/h1]'
+          # A double quote inside a value would end the string early: only the 8 keys, their
+          # values and "workshopitem" may contain them (8 * 4 + 2)
+          [ "$(grep -o '"' <<< "$VDF" | wc -l)" -eq 34 ] || { echo "::error::stray double quote in a value"; exit 1; }
           check "https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/"
 
       - name: Dry-run with only the required inputs

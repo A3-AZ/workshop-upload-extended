@@ -6,7 +6,8 @@ the item's **title**, **description**, **preview image** and **visibility**.
 - Works for any Steam game (`app-id`); the default is Arma 3 (`107410`).
 - Write the description in **Markdown** and let the action convert it to Steam BBCode.
 - Every field whose input is empty **stays unchanged** on Steam, so a minimal call only uploads the content.
-- All values are escaped before they are written into the VDF, so quotes and backslashes in changelogs are safe.
+- Changelogs and descriptions with quotes and backslashes can't break the VDF. steamcmd has no escape
+  sequences, so straight double quotes are turned into typographic ones (“ ”) and backslashes are kept as is.
 - `dry-run` builds and prints the VDF without logging in, useful for testing workflows.
 - When `steamcmd` fails, the Steam log files are printed to the job log.
 

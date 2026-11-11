@@ -15,15 +15,21 @@ FIXTURES = ROOT / "test" / "fixtures"
 
 
 class VdfTests(unittest.TestCase):
-    def test_escape_quotes_and_backslashes(self):
-        self.assertEqual(upload.vdf_escape('say "hi" C:\\x\\'), 'say \\"hi\\" C:\\\\x\\\\')
+    def test_quotes_become_typographic(self):
+        self.assertEqual(upload.vdf_escape('"a" say "hi", ("b")\n"c"'), "\u201ca\u201d say \u201chi\u201d, (\u201cb\u201d)\n\u201cc\u201d")
+
+    def test_backslashes_are_kept(self):
+        self.assertEqual(upload.vdf_escape("C:\\x\\ and \\n"), "C:\\x\\ and \\n")
+
+    def test_no_double_quote_left(self):
+        self.assertNotIn('"', upload.vdf_escape('""" "\\"" a"b'))
 
     def test_escape_normalizes_newlines_and_drops_nul(self):
         self.assertEqual(upload.vdf_escape("a\r\nb\rc\x00"), "a\nb\nc")
 
     def test_build_vdf(self):
         vdf = upload.build_vdf([("appid", "1"), ("changenote", 'Fix "x"\nand \\y')])
-        self.assertEqual(vdf, '"workshopitem"\n{\n\t"appid"\t"1"\n\t"changenote"\t"Fix \\"x\\"\nand \\\\y"\n}\n')
+        self.assertEqual(vdf, '"workshopitem"\n{\n\t"appid"\t"1"\n\t"changenote"\t"Fix \u201cx\u201d\nand \\y"\n}\n')
 
 
 class ConfigTests(unittest.TestCase):
@@ -221,9 +227,9 @@ class MainTests(unittest.TestCase):
     def test_dry_run_prints_vdf_without_credentials(self):
         code, out = self.run_main(self.base_env(**{"INPUT_DRY-RUN": "true"}))
         self.assertEqual(code, 0)
-        self.assertIn('"title"\t"Title with \\"quotes\\""', out)
-        self.assertIn('"changenote"\t"Fixed C:\\\\path and \\"quotes\\""', out)
-        self.assertIn('"description"\t"[h1]My \\"Quoted\\" Mod[/h1]', out)
+        self.assertIn('"title"\t"Title with \u201cquotes\u201d"', out)
+        self.assertIn('"changenote"\t"Fixed C:\\path and \u201cquotes\u201d"', out)
+        self.assertIn('"description"\t"[h1]My \u201cQuoted\u201d Mod[/h1]', out)
         self.assertIn("Dry run", out)
 
     def test_vdf_output_is_written(self):
