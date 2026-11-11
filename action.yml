@@ -1,0 +1,73 @@
+name: Workshop Upload Extended
+description: Upload content to a Steam Workshop item and optionally update its title, description (Markdown), preview and visibility.
+author: A3-AZ
+
+branding:
+  icon: upload-cloud
+  color: gray-dark
+
+inputs:
+  app-id:
+    description: Steam app ID of the game. Defaults to Arma 3.
+    required: false
+    default: '107410'
+  item-id:
+    description: ID of the Workshop item to update.
+    required: true
+  content-path:
+    description: Folder to upload, relative to the workspace.
+    required: true
+  changelog:
+    description: Change note for this update. Empty = no change note.
+    required: false
+    default: ''
+  title:
+    description: New title of the item. Empty = unchanged.
+    required: false
+    default: ''
+  visibility:
+    description: 'New visibility: public, friends, private or unlisted. Empty = unchanged.'
+    required: false
+    default: ''
+  description:
+    description: New description as inline text. Empty = use description-file.
+    required: false
+    default: ''
+  description-file:
+    description: >-
+      File with the new description, relative to the workspace. When empty, .steam/description.md
+      is used if it exists, otherwise the description stays unchanged. An explicit path that does not
+      exist fails the action. "none" ignores the default file.
+    required: false
+    default: ''
+  description-format:
+    description: 'Format of the description: markdown (converted to Steam BBCode) or bbcode (used as is).'
+    required: false
+    default: markdown
+  markdown-repo:
+    description: GitHub repository (owner/name) relative Markdown links and images point to. Defaults to the current repository.
+    required: false
+    default: ''
+  markdown-ref:
+    description: Branch, tag or commit relative Markdown links and images point to. Defaults to the branch or tag of the run, otherwise the commit.
+    required: false
+    default: ''
+  preview-file:
+    description: >-
+      Preview image (max. 1 MB), relative to the workspace. When empty, .steam/preview.png is used if it
+      exists, otherwise the preview stays unchanged. An explicit path that does not exist fails the
+      action. "none" ignores the default file.
+    required: false
+    default: ''
+  dry-run:
+    description: Only build and print the VDF. No login, no upload, no credentials needed.
+    required: false
+    default: 'false'
+
+outputs:
+  vdf:
+    description: The workshop_build_item VDF that was built (also set in dry-run mode).
+
+runs:
+  using: docker
+  image: Dockerfile

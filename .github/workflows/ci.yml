@@ -1,0 +1,104 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Run tests
+        run: python -m unittest discover -s test -v
+
+  dry-run:
+    name: Action dry-run
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Dry-run with every field
+        id: full
+        uses: ./
+        with:
+          item-id: '123456789'
+          content-path: test/fixtures/content
+          title: Title with "quotes"
+          visibility: unlisted
+          changelog: |
+            Fixed C:\path\to\file
+            Added "quotes"
+          description-file: test/fixtures/description.md
+          preview-file: test/fixtures/preview.png
+          dry-run: true
+
+      - name: Check the VDF
+        env:
+          VDF: ${{ steps.full.outputs.vdf }}
+        run: |
+          set -eu
+          printf '%s\n' "$VDF"
+          flat=$(printf '%s' "$VDF" | tr '\t' ' ')
+          check() { grep -qF -- "$1" <<< "$flat" || { echo "::error::VDF does not contain: $1"; exit 1; }; }
+          check '"publishedfileid" "123456789"'
+          check '"contentfolder" "/github/workspace/test/fixtures/content"'
+          check '"previewfile" "/github/workspace/test/fixtures/preview.png"'
+          check '"visibility" "3"'
+          check '"title" "Title with \"quotes\""'
+          check 'Fixed C:\\path\\to\\file'
+          check '"description" "[h1]My \"Quoted\" Mod[/h1]'
+          check "https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/"
+
+      - name: Dry-run with only the required inputs
+        id: minimal
+        uses: ./
+        with:
+          item-id: '123456789'
+          content-path: test/fixtures/content
+          dry-run: true
+
+      - name: Check that nothing else changes
+        env:
+          VDF: ${{ steps.minimal.outputs.vdf }}
+        run: |
+          set -eu
+          printf '%s\n' "$VDF"
+          for key in previewfile visibility title description changenote; do
+            if grep -qF "\"$key\"" <<< "$VDF"; then echo "::error::unexpected $key"; exit 1; fi
+          done
+
+      - name: Upload without credentials (must fail)
+        id: no-credentials
+        continue-on-error: true
+        uses: ./
+        with:
+          item-id: '123456789'
+          content-path: test/fixtures/content
+
+      - name: Missing explicit description file (must fail)
+        id: missing-file
+        continue-on-error: true
+        uses: ./
+        with:
+          item-id: '123456789'
+          content-path: test/fixtures/content
+          description-file: does/not/exist.md
+          dry-run: true
+
+      - name: Check the expected failures
+        run: |
+          set -eu
+          [ "${{ steps.no-credentials.outcome }}" = failure ] || { echo "::error::upload without credentials did not fail"; exit 1; }
+          [ "${{ steps.missing-file.outcome }}" = failure ] || { echo "::error::missing description file did not fail"; exit 1; }
