@@ -49,7 +49,7 @@ on:
 
 jobs:
   workshop:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04  # steamcmd can't update itself on ubuntu-26.04, see "Things to know"
     steps:
       - uses: actions/checkout@v4
 
@@ -195,7 +195,10 @@ python src/md2bbcode.py .steam/description.md --repo owner/repo --base-dir .stea
   or leave the input empty (`description-file: ''`, `preview-file: ''`) to keep managing a field on Steam.
 - The Workshop item must already exist; this action only updates items. Create it once in-game or with the
   game's publishing tool.
-- It is a Docker action, so it runs on Linux runners only (`ubuntu-latest`).
+- It is a Docker action, so it runs on Linux runners only.
+- **Use `runs-on: ubuntu-24.04`.** On `ubuntu-26.04` (what `ubuntu-latest` points to since late 2026),
+  steamcmd fails its self-update with `Steamcmd needs to be online to update`. The same happens with
+  `arma-actions/workshop-upload`.
 - `steamcmd` doesn't always set an exit code when an upload fails, so a line starting with `ERROR!` in its
   output also fails the action.
 
