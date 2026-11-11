@@ -30,16 +30,15 @@ inputs:
     required: false
     default: ''
   description:
-    description: New description as inline text. Empty = use description-file.
+    description: New description as inline text. Takes precedence over the default description-file.
     required: false
     default: ''
   description-file:
     description: >-
-      File with the new description, relative to the workspace. When empty, .steam/description.md
-      is used if it exists, otherwise the description stays unchanged. An explicit path that does not
-      exist fails the action. "none" ignores the default file.
+      File with the new description, relative to the workspace. If the default file does not exist, the
+      description stays unchanged; any other path that does not exist fails the action. Empty = no file.
     required: false
-    default: ''
+    default: .steam/description.md
   description-format:
     description: 'Format of the description: markdown (converted to Steam BBCode) or bbcode (used as is).'
     required: false
@@ -54,11 +53,10 @@ inputs:
     default: ''
   preview-file:
     description: >-
-      Preview image (max. 1 MB), relative to the workspace. When empty, .steam/preview.png is used if it
-      exists, otherwise the preview stays unchanged. An explicit path that does not exist fails the
-      action. "none" ignores the default file.
+      Preview image (max. 1 MB), relative to the workspace. If the default file does not exist, the
+      preview stays unchanged; any other path that does not exist fails the action. Empty = no preview.
     required: false
-    default: ''
+    default: .steam/preview.png
   dry-run:
     description: Only build and print the VDF. No login, no upload, no credentials needed.
     required: false

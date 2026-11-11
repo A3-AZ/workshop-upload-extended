@@ -79,6 +79,40 @@ jobs:
             if grep -qF "\"$key\"" <<< "$VDF"; then echo "::error::unexpected $key"; exit 1; fi
           done
 
+      - name: Create default .steam files
+        run: |
+          mkdir -p .steam
+          cp test/fixtures/description.md .steam/description.md
+          cp test/fixtures/preview.png .steam/preview.png
+
+      - name: Dry-run picking up the default files
+        id: defaults
+        uses: ./
+        with:
+          item-id: '123456789'
+          content-path: test/fixtures/content
+          dry-run: true
+
+      - name: Dry-run with the default files turned off
+        id: disabled
+        uses: ./
+        with:
+          item-id: '123456789'
+          content-path: test/fixtures/content
+          description-file: ''
+          preview-file: ''
+          dry-run: true
+
+      - name: Check the default files
+        env:
+          DEFAULTS: ${{ steps.defaults.outputs.vdf }}
+          DISABLED: ${{ steps.disabled.outputs.vdf }}
+        run: |
+          set -eu
+          grep -qF '"previewfile"' <<< "$DEFAULTS" || { echo "::error::default preview not used"; exit 1; }
+          grep -qF '"description"' <<< "$DEFAULTS" || { echo "::error::default description not used"; exit 1; }
+          if grep -qE '"(previewfile|description)"' <<< "$DISABLED"; then echo "::error::empty input did not turn the files off"; exit 1; fi
+
       - name: Upload without credentials (must fail)
         id: no-credentials
         continue-on-error: true

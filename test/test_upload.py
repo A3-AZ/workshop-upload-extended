@@ -121,12 +121,24 @@ class ConfigTests(unittest.TestCase):
     def test_missing_default_description_file_is_unchanged(self):
         self.assertNotIn("description", self.fields())
 
-    def test_missing_explicit_description_file_fails(self):
-        self.assert_fails("file not found", description_file=".steam/description.md")
+    def test_default_path_given_explicitly_is_still_optional(self):
+        self.assertNotIn("description", self.fields(description_file="./.steam/description.md"))
+        self.assertNotIn("previewfile", self.fields(preview_file=".steam/preview.png"))
 
-    def test_none_disables_default_description_file(self):
+    def test_missing_other_description_file_fails(self):
+        self.assert_fails("file not found", description_file="docs/workshop.md")
+
+    def test_similar_but_different_path_is_not_the_default(self):
+        self.assert_fails("file not found", description_file="steam/description.md")
+
+    def test_empty_disables_description_file(self):
         self.write(".steam/description.md", "# Hi")
-        self.assertNotIn("description", self.fields(description_file="none"))
+        self.assertNotIn("description", self.fields(description_file=""))
+
+    def test_inline_description_with_default_file_input_set(self):
+        self.write(".steam/description.md", "# File")
+        fields = self.fields(description="**Inline**", description_file=".steam/description.md")
+        self.assertEqual(fields["description"], "[b]Inline[/b]")
 
     def test_inline_description_wins_over_default_file(self):
         self.write(".steam/description.md", "# File")
@@ -170,9 +182,9 @@ class ConfigTests(unittest.TestCase):
     def test_missing_explicit_preview_fails(self):
         self.assert_fails("file not found", preview_file="p.png")
 
-    def test_none_disables_default_preview(self):
+    def test_empty_disables_preview(self):
         self.write(".steam/preview.png", b"png")
-        self.assertNotIn("previewfile", self.fields(preview_file="none"))
+        self.assertNotIn("previewfile", self.fields(preview_file=""))
 
     def test_preview_over_1mb_fails(self):
         self.write("big.png", b"\0" * (1024 * 1024 + 1))

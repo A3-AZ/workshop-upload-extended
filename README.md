@@ -112,12 +112,18 @@ No credentials are needed; the content folder and the files must still exist.
 
 `description-file` and `preview-file` follow the same rules:
 
-- **Not set**: the default file (`.steam/description.md` / `.steam/preview.png`) is used if it exists.
+- **Default path** (`.steam/description.md` / `.steam/preview.png`): used if the file exists.
   If it doesn't, the field stays unchanged on Steam.
-- **Set to a path**: the file must exist, otherwise the action fails.
-- **Set to `none`**: no file is used, even if the default file exists.
+- **Another path**: the file must exist, otherwise the action fails.
+- **Empty (`''`)**: the feature is off, no file is used even if the default file exists.
 
-Setting both `description` and an explicit `description-file` is an error.
+> [!NOTE]
+> If you wrap this action in a reusable workflow and forward an input like
+> `description-file: ${{ inputs.description-file }}`, an unset wrapper input arrives as `''` and turns the
+> feature off. Give the wrapper input the same default (`.steam/description.md`) to keep the default behavior.
+
+`description` takes precedence over the default description file. Setting both `description` and a
+non-default `description-file` is an error.
 
 ## Outputs
 
@@ -186,7 +192,7 @@ python src/md2bbcode.py .steam/description.md --repo owner/repo --base-dir .stea
 
 - **The repository wins.** Title, description, preview and visibility set by this action overwrite whatever
   is on Steam, including edits made by hand on the Workshop page. Edit the files in the repository instead,
-  or leave the input empty / set the file to `none` to keep managing a field on Steam.
+  or leave the input empty (`description-file: ''`, `preview-file: ''`) to keep managing a field on Steam.
 - The Workshop item must already exist; this action only updates items. Create it once in-game or with the
   game's publishing tool.
 - It is a Docker action, so it runs on Linux runners only (`ubuntu-latest`).

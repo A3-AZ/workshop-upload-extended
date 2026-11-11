@@ -22,7 +22,6 @@ DEFAULT_DESCRIPTION_FILE = ".steam/description.md"
 DEFAULT_PREVIEW_FILE = ".steam/preview.png"
 PREVIEW_LIMIT = 1024 * 1024  # Steam rejects preview images over 1 MB
 TITLE_LIMIT = 128
-DISABLED = "none"  # description-file / preview-file value that turns the default file off
 
 VISIBILITY = {"public": "0", "friends": "1", "private": "2", "unlisted": "3"}
 TRUE = {"true", "1", "yes", "on"}
@@ -48,12 +47,15 @@ def warning(message: str) -> None:
     print(f"::warning::{_escape_command(message)}", flush=True)
 
 
-def get_input(name: str, env: dict[str, str]) -> str:
-    """Value of an action input. GitHub keeps the dashes in the variable name."""
+def get_input(name: str, env: dict[str, str], default: str = "") -> str:
+    """Value of an action input, default when it isn't set at all (outside of GitHub).
+
+    GitHub keeps the dashes in the variable name.
+    """
     for key in (f"INPUT_{name.upper()}", f"INPUT_{name.upper().replace('-', '_')}"):
         if key in env:
             return env[key].strip()
-    return ""
+    return default
 
 
 def write_output(name: str, value: str, env: dict[str, str]) -> None:
@@ -104,22 +106,25 @@ def _bool(name: str, value: str) -> bool:
     raise ActionError(f"Input '{name}' must be true or false, got '{value}'.")
 
 
+def _same_path(a: str, b: str) -> bool:
+    return Path(a).as_posix() == Path(b).as_posix()
+
+
 def _optional_file(name: str, value: str, default: str, workspace: Path) -> Path | None:
     """Path of an optional file input.
 
-    Empty input: the default path, or None when it doesn't exist.
-    "none": None, the default file is not used.
-    Explicit path: must exist.
+    Empty: None, the feature is turned off.
+    The default path: used when it exists, otherwise None (field unchanged).
+    Any other path: must exist.
     """
-    if value.lower() == DISABLED:
+    if not value:
         return None
-    explicit = bool(value)
-    path = workspace / (value or default)
+    path = workspace / value
     if path.is_file():
         return path
-    if explicit:
-        raise ActionError(f"Input '{name}': file not found: {value}")
-    return None
+    if _same_path(value, default):
+        return None
+    raise ActionError(f"Input '{name}': file not found: {value}")
 
 
 def _link_ref(env: dict[str, str]) -> str:
@@ -174,8 +179,8 @@ def load_config(env: dict[str, str]) -> Config:
     if fmt not in ("markdown", "bbcode"):
         raise ActionError(f"Input 'description-format' must be markdown or bbcode, got '{fmt}'.")
     description_text = get_input("description", env)
-    description_file_input = get_input("description-file", env)
-    if description_text and description_file_input and description_file_input.lower() != DISABLED:
+    description_file_input = get_input("description-file", env, DEFAULT_DESCRIPTION_FILE)
+    if description_text and description_file_input and not _same_path(description_file_input, DEFAULT_DESCRIPTION_FILE):
         raise ActionError("Set either 'description' or 'description-file', not both.")
 
     description = None
@@ -207,7 +212,9 @@ def load_config(env: dict[str, str]) -> Config:
                 f"Steam allows {md2bbcode.STEAM_DESCRIPTION_LIMIT}."
             )
 
-    preview = _optional_file("preview-file", get_input("preview-file", env), DEFAULT_PREVIEW_FILE, workspace)
+    preview = _optional_file(
+        "preview-file", get_input("preview-file", env, DEFAULT_PREVIEW_FILE), DEFAULT_PREVIEW_FILE, workspace
+    )
     if preview:
         size = preview.stat().st_size
         if size > PREVIEW_LIMIT:
