@@ -350,9 +350,15 @@ def main(env: dict[str, str] | None = None) -> int:
         print("Dry run - not logging in, nothing uploaded.")
         return 0
 
-    with tempfile.TemporaryDirectory() as temp:
+    # steamcmd may not run as the user of this script: the VDF has to be readable for everyone.
+    # Next to steamcmd is where it is known to work, the system temp folder is the fallback.
+    steamcmd_dir = Path(env.get("STEAMCMDDIR") or "/home/steam/steamcmd")
+    parent = steamcmd_dir if os.access(steamcmd_dir, os.W_OK) else None
+    with tempfile.TemporaryDirectory(dir=parent) as temp:
+        os.chmod(temp, 0o755)
         vdf_path = Path(temp) / "workshop.vdf"
         vdf_path.write_text(vdf, encoding="utf-8", newline="\n")
+        os.chmod(vdf_path, 0o644)
         return run_steamcmd(config, vdf_path, env)
 
 
